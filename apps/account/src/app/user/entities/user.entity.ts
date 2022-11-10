@@ -13,14 +13,24 @@ export class UserEntity implements IUser {
   role: UserRole;
 
   constructor(user: IUser) {
-    Object.assign(this, user);
+    this._id = user._id;
+    this.displayName = user.displayName;
+    this.passwordHash = user.passwordHash;
+    this.email = user.email;
+    this.role = user.role;
   }
 
   public async setPassword(password: string) {
     const salt = randomBytes(8).toString('hex');
-    const passwordHash = (await scryptAsync(password, salt, 64)) as Buffer;
-    this.passwordHash = passwordHash.toString();
+    const passwordBuf = (await scryptAsync(password, salt, 64)) as Buffer;
+    this.passwordHash = `${passwordBuf.toString('hex')}.${salt}`;
     return this;
+  }
+
+  public async validatePassword(password: string) {
+    const [hashedPassword, salt] = this.passwordHash.split('.');
+    const passwordBuf = (await scryptAsync(password, salt, 64)) as Buffer;
+    return passwordBuf.toString('hex') === hashedPassword;
   }
 }
 
